@@ -20,16 +20,13 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-    if host.strip()
-]
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(",")
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework',
     'search',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -132,3 +129,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 GITHUB_REQUEST_TIMEOUT = float(os.getenv("GITHUB_REQUEST_TIMEOUT", "10"))
+
+CACHE_KEY_PREFIX = "gsa"
+CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "7200"))
+CLEAR_CACHE_TOKEN = os.getenv("CLEAR_CACHE_TOKEN", "")

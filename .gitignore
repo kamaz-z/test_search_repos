@@ -1,6 +1,4 @@
 backend/.env
-backend/.env.*
-!backend/.env.example
 backend/__pycache__/
 backend/*.py[cod]
 backend/*$py.class
@@ -11,3 +9,4 @@ backend/.venv/
 venv/
 .DS_Store
 *.log
+frontend/node_modules/

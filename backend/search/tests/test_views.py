@@ -1,0 +1,197 @@
+from fnmatch import fnmatch
+
+import pytest
+from rest_framework.test import APIClient
+
+from search.services import GitHubRateLimitError, GitHubTimeoutError
+
+
+class FakeRedis:
+    """Імітує частину методів redis.Redis, яку використовує cache.py."""
+
+    def __init__(self):
+        self.storage = {}
+        self.ttl = {}
+
+    def get(self, key):
+        return self.storage.get(key)
+
+    def set(self, key, value, ex=None):
+        self.storage[key] = value
+        self.ttl[key] = ex
+
+    def scan_iter(self, match=None, count=None):
+        for key in list(self.storage):
+            if match is None or fnmatch(key, match):
+                yield key
+
+    def delete(self, *keys):
+        for key in keys:
+            self.storage.pop(key, None)
+            self.ttl.pop(key, None)
+
+
+RAW_GITHUB_RESPONSE = {
+    "total_count": 1,
+    "items": [
+        {
+            "id": 1,
+            "name": "django",
+            "full_name": "django/django",
+            "html_url": "https://github.com/django/django",
+            "description": "Web framework",
+            "stargazers_count": 10,
+            "forks_count": 2,
+            "language": "Python",
+            "owner": {"login": "django"},
+        }
+    ],
+}
+
+
+@pytest.fixture
+def api_client():
+    return APIClient()
+
+
+@pytest.fixture
+def fake_redis(monkeypatch):
+    redis_stub = FakeRedis()
+    monkeypatch.setattr("search.cache.get_redis_client", lambda: redis_stub)
+    return redis_stub
+
+
+@pytest.fixture
+def github_calls(monkeypatch):
+    """Рахує, скільки разів view справді ходив до GitHub."""
+    calls = []
+
+    def fake_search(search_type, query):
+        calls.append((search_type, query))
+        if search_type == "users":
+            return {"total_count": 0, "items": []}
+        return RAW_GITHUB_RESPONSE
+
+    monkeypatch.setattr("search.views.search_github", fake_search)
+    return calls
+
+
+def post_search(api_client, search_type="repositories", query="django"):
+    return api_client.post(
+        "/api/search/", {"type": search_type, "query": query}, format="json"
+    )
+
+
+# --- Пошук і кеш ---
+
+def test_first_request_is_miss_second_is_hit(api_client, fake_redis, github_calls):
+    first = post_search(api_client)
+    second = post_search(api_client)
+
+    assert first.status_code == 200
+    assert first.data["cached"] is False
+    assert second.data["cached"] is True
+    assert len(github_calls) == 1
+
+
+def test_equivalent_queries_share_one_cache_key(api_client, fake_redis, github_calls):
+    post_search(api_client, query="  DJANGO  ")
+    response = post_search(api_client, query="django")
+
+    assert response.data["cached"] is True
+    assert len(github_calls) == 1
+
+
+def test_different_search_types_use_separate_keys(api_client, fake_redis, github_calls):
+    post_search(api_client, search_type="repositories")
+    response = post_search(api_client, search_type="users")
+
+    assert response.data["cached"] is False
+    assert len(github_calls) == 2
+
+
+def test_cache_entry_gets_configured_ttl(api_client, fake_redis, github_calls, settings):
+    settings.CACHE_TTL_SECONDS = 7200
+    post_search(api_client)
+
+    assert fake_redis.ttl["gsa:search:repositories:django"] == 7200
+
+
+@pytest.mark.parametrize(
+    "error, expected_status",
+    [
+        (GitHubTimeoutError("timeout"), 504),
+        (GitHubRateLimitError("limit"), 429),
+    ],
+)
+def test_github_errors_are_returned_and_not_cached(
+    api_client, fake_redis, monkeypatch, error, expected_status
+):
+    def failing_search(search_type, query):
+        raise error
+
+    monkeypatch.setattr("search.views.search_github", failing_search)
+
+    response = post_search(api_client)
+
+    assert response.status_code == expected_status
+    assert fake_redis.storage == {}
+
+
+# --- Валідація ---
+
+def test_invalid_type_returns_400(api_client, fake_redis, github_calls):
+    response = post_search(api_client, search_type="bad")
+
+    assert response.status_code == 400
+    assert github_calls == []
+
+
+def test_too_short_query_returns_400(api_client, fake_redis, github_calls):
+    response = post_search(api_client, query="ab")
+
+    assert response.status_code == 400
+    assert github_calls == []
+
+
+# --- Очищення кешу ---
+
+def test_clear_cache_without_token_is_forbidden(api_client, fake_redis, settings):
+    settings.CLEAR_CACHE_TOKEN = "secret"
+
+    response = api_client.post("/api/clear-cache/")
+
+    assert response.status_code == 403
+
+
+def test_clear_cache_with_wrong_token_is_forbidden(api_client, fake_redis, settings):
+    settings.CLEAR_CACHE_TOKEN = "secret"
+
+    response = api_client.post("/api/clear-cache/", HTTP_X_ADMIN_TOKEN="wrong")
+
+    assert response.status_code == 403
+
+
+def test_clear_cache_is_disabled_when_server_token_is_empty(
+    api_client, fake_redis, settings
+):
+    settings.CLEAR_CACHE_TOKEN = ""
+
+    response = api_client.post("/api/clear-cache/", HTTP_X_ADMIN_TOKEN="")
+
+    assert response.status_code == 403
+
+
+def test_clear_cache_removes_only_app_keys(api_client, fake_redis, settings):
+    settings.CLEAR_CACHE_TOKEN = "secret"
+    fake_redis.storage = {
+        "gsa:search:repositories:django": "{}",
+        "other_service:key": "keep me",
+    }
+
+    response = api_client.post("/api/clear-cache/", HTTP_X_ADMIN_TOKEN="secret")
+
+    assert response.status_code == 200
+    assert response.data["deleted_keys"] == 1
+    assert "other_service:key" in fake_redis.storage
+    assert "gsa:search:repositories:django" not in fake_redis.storage

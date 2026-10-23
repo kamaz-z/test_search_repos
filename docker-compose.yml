@@ -1,7 +1,6 @@
 services:
   redis:
     image: redis:7-alpine
-    container_name: github-search-redis
     ports:
       - "6379:6379"
     healthcheck:
@@ -9,3 +8,33 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  backend:
+    build: ./backend
+    env_file:
+      - ./backend/.env
+    environment:
+      # Перевизначає REDIS_URL з .env: усередині мережі Docker Redis доступний за іменем "redis"
+      REDIS_URL: redis://redis:6379/0
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Зміни коду підхоплюються без перезбирання образу
+      - ./backend:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      # Анонімний том не дає Mac-версії node_modules затерти контейнерну
+      - /app/node_modules
+    depends_on:
+      - backend

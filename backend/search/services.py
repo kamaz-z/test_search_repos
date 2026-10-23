@@ -10,7 +10,7 @@ SEARCH_ENDPOINTS = {
     "issues": "/search/issues",
 }
 
-RESULTS_PER_PAGE = 10
+RESULTS_PER_PAGE = 12
 
 
 class GitHubAPIError(Exception):
@@ -30,10 +30,6 @@ class GitHubTimeoutError(GitHubAPIError):
 
 
 def search_github(search_type, query):
-    """
-    Виконує пошук у GitHub і повертає сирий JSON (dict).
-    Піднімає GitHubAPIError або його нащадків при будь-якій проблемі.
-    """
     endpoint = SEARCH_ENDPOINTS[search_type]
     url = f"{GITHUB_API_BASE_URL}{endpoint}"
 
@@ -65,8 +61,6 @@ def search_github(search_type, query):
 
 
 def _raise_for_status(response):
-    """Перетворює HTTP-статус GitHub на наші винятки."""
-    # GitHub повертає 403 з remaining=0 або 429, коли ліміт вичерпано
     is_rate_limited = response.status_code == 429 or (
         response.status_code == 403
         and response.headers.get("X-RateLimit-Remaining") == "0"

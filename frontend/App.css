@@ -1,0 +1,196 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: #f4f5f7;
+  color: #1f2328;
+}
+
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.app__title {
+  margin: 0 0 16px;
+  font-size: 28px;
+}
+
+.app__total {
+  color: #57606a;
+  margin: 16px 0;
+}
+
+/* Форма пошуку */
+.search-form {
+  display: flex;
+  gap: 8px;
+}
+
+.search-input,
+.search-select {
+  padding: 10px 12px;
+  font-size: 16px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.search-input {
+  flex: 1;
+}
+
+/* Статуси */
+.status {
+  margin: 24px 0;
+  text-align: center;
+  color: #57606a;
+}
+
+.status--error {
+  color: #cf222e;
+}
+
+/* Сітка карток: 3 колонки на широкому екрані, 2 колонки до 768 px */
+.results-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.card__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
+.card__title {
+  margin: 0;
+  font-size: 18px;
+  word-break: break-word;
+}
+
+.card__meta,
+.card__description {
+  margin: 0;
+  color: #57606a;
+  font-size: 14px;
+}
+
+.card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.card__link {
+  margin-top: auto;
+  color: #0969da;
+  text-decoration: none;
+}
+
+.app__header {
+  margin-bottom: 24px;
+}
+
+.app__eyebrow {
+  margin: 0 0 8px;
+  color: #57606a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.app__intro {
+  margin: 0;
+  color: #57606a;
+}
+
+.app__results {
+  min-height: 180px;
+}
+
+.results-grid li {
+  min-width: 0;
+}
+
+.search-form {
+  align-items: center;
+}
+
+.search-form button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 6px;
+  background: #176b55;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.search-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.search-form input:focus-visible,
+.search-form select:focus-visible,
+.search-form button:focus-visible,
+.card a:focus-visible {
+  outline: 3px solid #79c8ad;
+  outline-offset: 2px;
+}
+
+.status--error {
+  padding: 12px 16px;
+  border-left: 4px solid #cf222e;
+  background: #fff0ee;
+}
+
+@media (max-width: 768px) {
+  .search-form {
+    flex-wrap: wrap;
+  }
+
+  .search-form .search-input {
+    flex-basis: 100%;
+  }
+
+  .results-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .app {
+    padding: 20px 14px;
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+}

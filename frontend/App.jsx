@@ -5,11 +5,12 @@ import StatusMessage from "./src/components/StatusMessage.jsx";
 import { useDebounce } from "./src/hooks/useDebounce.js";
 import { useSearch } from "./src/hooks/useSearch.js";
 
+
 export default function App() {
   const [query, setQuery] = useState("");
   const [type, setType] = useState("repositories");
   const debouncedQuery = useDebounce(query, 400);
-  const { status, items, totalCount, error } = useSearch(debouncedQuery, type);
+  const { status, items, totalCount, error,hasMore,isLoadingMore,loadMore } = useSearch(debouncedQuery, type);
 
   return (
     <main className="app">
@@ -34,8 +35,21 @@ export default function App() {
 
       <section className="app__results" aria-live="polite">
         <StatusMessage status={status} error={error} />
-        {status === "success" && <ResultsGrid items={items} type={type} />}
-      </section>
+        {status === "success" && (
+  <>
+    <ResultsGrid items={items} type={type} />
+
+    {hasMore && (
+      <button
+        className="load-more"
+        onClick={loadMore}
+        disabled={isLoadingMore}
+      >
+        {isLoadingMore ? "Завантаження..." : "Показати ще"}
+      </button>
+    )}
+  </>
+)}      </section>
     </main>
   );
 }

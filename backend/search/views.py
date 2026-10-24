@@ -10,6 +10,7 @@ from .cache import clear_app_cache, get_cached_search, set_cached_search
 from .normalizers import normalize_search_response
 from .serializers import SearchRequestSerializer
 from .services import (
+    RESULTS_PER_PAGE,
     GitHubAPIError,
     GitHubRateLimitError,
     GitHubTimeoutError,
@@ -20,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 class SearchView(APIView):
-    # Пошук публічний. Вимикаємо автентифікацію, щоб не було вимог CSRF
     authentication_classes = []
     permission_classes = [AllowAny]
 
@@ -30,13 +30,14 @@ class SearchView(APIView):
 
         search_type = serializer.validated_data["type"]
         query = serializer.validated_data["query"]
+        page = serializer.validated_data["page"]
 
-        cached_result = get_cached_search(search_type, query)
+        cached_result = get_cached_search(search_type, query, page)
         if cached_result is not None:
             return Response({**cached_result, "cached": True})
 
         try:
-            raw_response = search_github(search_type, query)
+            raw_response = search_github(search_type, query, page)
         except GitHubRateLimitError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_429_TOO_MANY_REQUESTS)
         except GitHubTimeoutError as exc:
@@ -45,13 +46,10 @@ class SearchView(APIView):
             logger.warning("Помилка GitHub API: %s", exc)
             return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
-        result = normalize_search_response(search_type, raw_response)
-        # Кешуємо лише успішну відповідь
-        set_cached_search(search_type, query, result)
+        result = normalize_search_response(search_type, raw_response, page, RESULTS_PER_PAGE)
+        set_cached_search(search_type, query, page, result)
 
         return Response({**result, "cached": False})
-
-
 class ClearCacheView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]

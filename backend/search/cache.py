@@ -21,12 +21,14 @@ def normalize_query(query):
     return " ".join(query.split()).lower()
 
 
-def build_cache_key(search_type, query):
-    return f"{settings.CACHE_KEY_PREFIX}:search:{search_type}:{normalize_query(query)}"
+def build_cache_key(search_type, query, page):
+    return (f"{settings.CACHE_KEY_PREFIX}:search:{search_type}:{normalize_query(query)}"
+            f"{normalize_query(query)}:page:{page}")
 
 
-def get_cached_search(search_type, query):
-    key = build_cache_key(search_type, query)
+def get_cached_search(search_type, query, page):
+    """Повертає збережений результат або None, якщо його немає."""
+    key = build_cache_key(search_type, query, page)
     try:
         raw_value = get_redis_client().get(key)
     except redis.RedisError:
@@ -38,9 +40,9 @@ def get_cached_search(search_type, query):
     return json.loads(raw_value)
 
 
-def set_cached_search(search_type, query, data):
+def set_cached_search(search_type, query, data, page):
     """Зберігає нормалізований результат з TTL."""
-    key = build_cache_key(search_type, query)
+    key = build_cache_key(search_type, query, page)
     try:
         get_redis_client().set(
             key,

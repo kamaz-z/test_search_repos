@@ -5,7 +5,7 @@ class SearchRequestSerializer(serializers.Serializer):
     # Тип пошуку: тільки одне з трьох значень, інакше помилка 400
     type = serializers.ChoiceField(choices=["users", "repositories", "issues"])
     query = serializers.CharField(min_length=3, max_length=256, trim_whitespace=True)
-
+    page = serializers.IntegerField(min_value=1,default=1,required=False)
 
 class UserItemSerializer(serializers.Serializer):
     id = serializers.IntegerField()

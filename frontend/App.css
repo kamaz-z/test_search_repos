@@ -2,195 +2,428 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-  background: #f4f5f7;
-  color: #1f2328;
+:root {
+  --color-primary: #635bdb;
+  --color-primary-hover: #5147c7;
+  --color-text: #20243a;
+  --color-muted: #707894;
+  --color-border: #e4e7f5;
+  --color-surface: #ffffff;
+  --color-success: #16866a;
+  --color-error: #cf3f55;
 }
 
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  background:
+    radial-gradient(
+      ellipse at 8% 5%,
+      rgba(170, 190, 255, 0.32),
+      transparent 35%
+    ),
+    radial-gradient(
+      ellipse at 95% 90%,
+      rgba(207, 190, 255, 0.3),
+      transparent 35%
+    ),
+    linear-gradient(135deg, #f3f5ff 0%, #f8f7ff 50%, #eef5ff 100%);
+  color: var(--color-text);
+}
+
+/* ===== Основний контейнер ===== */
 .app {
-  max-width: 1100px;
+  width: min(1160px, 100%);
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: 48px 24px;
+}
+
+.app__header {
+  margin-bottom: 30px;
 }
 
 .app__title {
-  margin: 0 0 16px;
-  font-size: 28px;
+  margin: 0 0 12px;
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 800;
+  letter-spacing: -1.2px;
+  color: #25264b;
 }
 
-.app__total {
-  color: #57606a;
-  margin: 16px 0;
+.app__eyebrow {
+  margin: 0 0 10px;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-/* Форма пошуку */
+.app__intro {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* ===== Форма пошуку ===== */
 .search-form {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+  box-shadow: 0 12px 36px rgba(78, 84, 150, 0.09);
+  backdrop-filter: blur(12px);
 }
 
 .search-input,
 .search-select {
-  padding: 10px 12px;
-  font-size: 16px;
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
+  min-width: 0;
+  padding: 13px 16px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
   background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .search-input {
   flex: 1;
 }
 
-/* Статуси */
-.status {
-  margin: 24px 0;
-  text-align: center;
-  color: #57606a;
+.search-input::placeholder {
+  color: #9ba2ba;
 }
 
-.status--error {
-  color: #cf222e;
+.search-input:hover,
+.search-select:hover {
+  border-color: #c5c9f6;
 }
 
-/* Сітка карток: 3 колонки на широкому екрані, 2 колонки до 768 px */
-.results-grid {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+.search-input:focus,
+.search-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(99, 91, 219, 0.12);
 }
 
-.card {
-  background: #fff;
-  border: 1px solid #d0d7de;
-  border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  height: 100%;
-}
-
-.card__avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-}
-
-.card__title {
-  margin: 0;
-  font-size: 18px;
-  word-break: break-word;
-}
-
-.card__meta,
-.card__description {
-  margin: 0;
-  color: #57606a;
-  font-size: 14px;
-}
-
-.card__stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 14px;
-}
-
-.card__link {
-  margin-top: auto;
-  color: #0969da;
-  text-decoration: none;
-}
-
-.app__header {
-  margin-bottom: 24px;
-}
-
-.app__eyebrow {
-  margin: 0 0 8px;
-  color: #57606a;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.app__intro {
-  margin: 0;
-  color: #57606a;
-}
-
-.app__results {
-  min-height: 180px;
-}
-
-.results-grid li {
-  min-width: 0;
-}
-
-.search-form {
-  align-items: center;
-}
-
+/* Кнопка пошуку */
 .search-form button {
-  min-height: 42px;
-  padding: 0 16px;
+  min-height: 46px;
+  padding: 0 24px;
   border: 0;
-  border-radius: 6px;
-  background: #176b55;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7168e8, #5951cb);
   color: #fff;
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 5px 12px rgba(99, 91, 219, 0.2);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+.search-form button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(99, 91, 219, 0.3);
+  filter: brightness(1.04);
+}
+
+.search-form button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .search-form button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+  box-shadow: none;
 }
 
+/* ===== Інформація про результати ===== */
+.app__total {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0 18px;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.app__total strong {
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+/* ===== Сітка результатів ===== */
+.app__results {
+  min-height: 180px;
+  margin-top: 20px;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 60px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.results-grid li {
+  min-width: 0;
+  animation: card-appear 0.4s ease both;
+}
+
+.results-grid li:nth-child(2) {
+  animation-delay: 0.04s;
+}
+
+.results-grid li:nth-child(3) {
+  animation-delay: 0.08s;
+}
+
+.results-grid li:nth-child(4) {
+  animation-delay: 0.12s;
+}
+
+.results-grid li:nth-child(5) {
+  animation-delay: 0.16s;
+}
+
+.results-grid li:nth-child(6) {
+  animation-delay: 0.2s;
+}
+
+@keyframes card-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Картки ===== */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-width: 0;
+  padding: 22px;
+  background: var(--color-surface);
+  border: 1px solid rgba(222, 225, 245, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 5px 18px rgba(54, 60, 120, 0.055);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  border-color: #cbc9fa;
+  box-shadow: 0 14px 30px rgba(68, 69, 140, 0.12);
+}
+
+.card__avatar {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border: 3px solid #f0efff;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f0efff;
+}
+
+.card__title {
+  margin: 0;
+  color: #292b52;
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.card__meta,
+.card__description {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.card__description {
+  overflow-wrap: anywhere;
+}
+
+.card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: auto;
+  padding-top: 8px;
+  color: #656c8b;
+  font-size: 13px;
+}
+
+.card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 8px;
+  padding-top: 14px;
+  color: var(--color-primary);
+  border-top: 1px solid #eeeefa;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  transition: color 0.2s ease;
+}
+
+.card__link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* ===== Стани завантаження та помилок ===== */
+.status {
+  margin: 28px 0;
+  padding: 18px;
+  text-align: center;
+  color: var(--color-muted);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.status--error {
+  padding: 14px 18px;
+  color: var(--color-error);
+  text-align: left;
+  background: #fff1f3;
+  border: 1px solid #ffd8df;
+  border-left: 4px solid var(--color-error);
+  border-radius: 10px;
+}
+
+/* ===== Фокус клавіатури ===== */
 .search-form input:focus-visible,
 .search-form select:focus-visible,
 .search-form button:focus-visible,
 .card a:focus-visible {
-  outline: 3px solid #79c8ad;
-  outline-offset: 2px;
+  outline: 3px solid rgba(99, 91, 219, 0.45);
+  outline-offset: 3px;
 }
 
-.status--error {
-  padding: 12px 16px;
-  border-left: 4px solid #cf222e;
-  background: #fff0ee;
+/* ===== Планшети ===== */
+@media (max-width: 900px) {
+  .app {
+    padding: 36px 20px;
+  }
+
+  .results-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    padding: 18px;
+  }
 }
 
-@media (max-width: 768px) {
+/* ===== Телефони ===== */
+@media (max-width: 560px) {
+  .app {
+    padding: 26px 14px;
+  }
+
+  .app__header {
+    margin-bottom: 22px;
+  }
+
+  .app__title {
+    font-size: 28px;
+    letter-spacing: -0.6px;
+  }
+
   .search-form {
     flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 14px;
   }
 
   .search-form .search-input {
     flex-basis: 100%;
   }
 
+  .search-form .search-select {
+    flex: 1;
+  }
+
+  .search-form button {
+    flex: 1;
+    padding: 0 16px;
+  }
+
   .results-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .card {
+    padding: 20px;
   }
 }
 
-@media (max-width: 520px) {
-  .app {
-    padding: 20px 14px;
+/* ===== Зменшення анімації за налаштуваннями системи ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
+}
 
-  .results-grid {
-    grid-template-columns: 1fr;
-  }
+.load-more {
+  display: block;
+  margin: 24px auto 0;
+  padding: 10px 24px;
+  font-size: 16px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.load-more:disabled {
+  opacity: 0.6;
+  cursor: default;
 }

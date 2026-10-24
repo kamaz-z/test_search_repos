@@ -15,7 +15,6 @@ export default function SearchForm({ query, onQueryChange, type, onTypeChange })
       >
         <option value="repositories">Repository</option>
         <option value="users">User</option>
-        <option value="issues">Issue</option>
       </select>
     </form>
   );

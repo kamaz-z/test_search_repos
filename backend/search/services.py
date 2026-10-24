@@ -1,5 +1,6 @@
 import requests
 from django.conf import settings
+from .serializers import SearchRequestSerializer
 
 
 GITHUB_API_BASE_URL = "https://api.github.com"
@@ -12,6 +13,7 @@ SEARCH_ENDPOINTS = {
 
 RESULTS_PER_PAGE = 12
 
+PAGE_NUMBER = SearchRequestSerializer().fields["page"].default  # Використовуємо дефолт із серіалізатора
 
 class GitHubAPIError(Exception):
     """Будь-яка помилка GitHub API, яку ми не змогли обробити інакше."""
@@ -29,7 +31,7 @@ class GitHubTimeoutError(GitHubAPIError):
     """GitHub не відповів вчасно."""
 
 
-def search_github(search_type, query):
+def search_github(search_type, query, page):
     endpoint = SEARCH_ENDPOINTS[search_type]
     url = f"{GITHUB_API_BASE_URL}{endpoint}"
 
@@ -40,7 +42,7 @@ def search_github(search_type, query):
     if settings.GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {settings.GITHUB_TOKEN}"
 
-    params = {"q": query, "per_page": RESULTS_PER_PAGE}
+    params = {"q": query, "per_page": RESULTS_PER_PAGE, "page": PAGE_NUMBER}
 
     try:
         response = requests.get(

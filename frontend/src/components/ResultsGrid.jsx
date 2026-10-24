@@ -6,7 +6,7 @@ export default function ResultsGrid({ type, items }) {
     <ul className="results-grid">
       {items.map((item) => (
         <li key={item.id}>
-          {type === "users" ? <UserCard user={item} /> : type === "issues" ? <IssueCard issue={item} /> : <RepositoryCard repo={item} />}
+          {type === "users" ? <UserCard user={item} />  : type === "repositories" ? <RepositoryCard repo={item} /> : null}
         </li>
       ))}
     </ul>

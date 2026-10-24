@@ -46,17 +46,16 @@ NORMALIZERS = {
 }
 
 
-def normalize_search_response(search_type, raw_response):
-    """
-    Приймає відповідь GitHub Search API цілком і повертає
-    нормалізований результат: лічильник і список коротких елементів.
-    """
+def normalize_search_response(search_type, raw_response, page, per_page):
     normalize_item = NORMALIZERS[search_type]
 
-    # .get з порожнім списком: якщо items немає, маємо порожній результат, а не помилку
     raw_items = raw_response.get("items", [])
+    total_count = raw_response.get("total_count", 0)
 
     return {
-        "total_count": raw_response.get("total_count", 0),
+        "total_count": total_count,
+        "page": page,
+        # Якщо ця сторінка закриває всі результати, далі нічого немає
+        "has_more": page * per_page < total_count,
         "items": [normalize_item(item) for item in raw_items],
     }

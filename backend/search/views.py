@@ -2,12 +2,12 @@ import hmac
 import logging
 from django.conf import settings
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny,IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from .cache import clear_app_cache, get_cached_search, set_cached_search
+from .cache import clear_app_cache, get_cached_search, set_cached_search,save_search_query,get_search_history
 from .normalizers import normalize_search_response
+from rest_framework.authentication import TokenAuthentication
 from .serializers import SearchRequestSerializer
 from .services import (
     RESULTS_PER_PAGE,
@@ -34,6 +34,8 @@ class SearchView(APIView):
 
         cached_result = get_cached_search(search_type, query, page)
         if cached_result is not None:
+            if page == 1:
+                save_search_query(search_type, query)
             return Response({**cached_result, "cached": True})
 
         try:
@@ -47,26 +49,22 @@ class SearchView(APIView):
             return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
         result = normalize_search_response(search_type, raw_response, page, RESULTS_PER_PAGE)
-        set_cached_search(search_type, query, page, result)
+        if page == 1:
+            save_search_query(search_type, query)
+        set_cached_search(search_type, query, result, page)
 
         return Response({**result, "cached": False})
 class ClearCacheView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminUser]
 
     def post(self, request):
-        expected_token = settings.CLEAR_CACHE_TOKEN
-        provided_token = request.headers.get("X-Admin-Token", "")
-
-        # Порожній токен у налаштуваннях означає, що очищення вимкнене
-        is_authorized = bool(expected_token) and hmac.compare_digest(
-            provided_token.encode(), expected_token.encode()
-        )
-        if not is_authorized:
-            return Response(
-                {"detail": "Доступ заборонено"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         deleted_count = clear_app_cache()
         return Response({"deleted_keys": deleted_count})
+
+class HistoryView(APIView):
+
+    def get(self, request):
+        history = get_search_history()
+
+        return Response({"history": history})

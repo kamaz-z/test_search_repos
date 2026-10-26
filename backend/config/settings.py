@@ -27,6 +27,7 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(
 
 INSTALLED_APPS = [
     'rest_framework',
+    'rest_framework.authtoken',
     'search',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -35,6 +36,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+}
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -132,4 +140,3 @@ GITHUB_REQUEST_TIMEOUT = float(os.getenv("GITHUB_REQUEST_TIMEOUT", "10"))
 
 CACHE_KEY_PREFIX = "gsa"
 CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "7200"))
-CLEAR_CACHE_TOKEN = os.getenv("CLEAR_CACHE_TOKEN", "")

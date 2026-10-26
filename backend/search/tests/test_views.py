@@ -12,6 +12,7 @@ class FakeRedis:
     def __init__(self):
         self.storage = {}
         self.ttl = {}
+        self.lists = {}
 
     def get(self, key):
         return self.storage.get(key)
@@ -29,6 +30,20 @@ class FakeRedis:
         for key in keys:
             self.storage.pop(key, None)
             self.ttl.pop(key, None)
+
+    def lrange(self, key, start, end):
+        values = self.lists.get(key, [])
+        return values[start:] if end == -1 else values[start : end + 1]
+
+    def lrem(self, key, count, value):
+        values = self.lists.get(key, [])
+        self.lists[key] = [item for item in values if item != value]
+
+    def lpush(self, key, value):
+        self.lists.setdefault(key, []).insert(0, value)
+
+    def ltrim(self, key, start, end):
+        self.lists[key] = self.lrange(key, start, end)
 
 
 RAW_GITHUB_RESPONSE = {
@@ -110,11 +125,38 @@ def test_different_search_types_use_separate_keys(api_client, fake_redis, github
     assert len(github_calls) == 2
 
 
+def test_search_history_includes_query_and_type_even_for_cached_search(
+    api_client, fake_redis, github_calls
+):
+    post_search(api_client, search_type="repositories", query="django")
+    post_search(api_client, search_type="users", query="django")
+    post_search(api_client, search_type="repositories", query="django")
+
+    response = api_client.get("/api/history/")
+
+    assert response.status_code == 200
+    assert len(github_calls) == 2
+    assert response.data["history"] == [
+        {"query": "django", "type": "repositories"},
+        {"query": "django", "type": "users"},
+    ]
+
+
+def test_search_history_supports_legacy_queries(fake_redis):
+    fake_redis.lists["search:history"] = ["django"]
+
+    from search.cache import get_search_history
+
+    assert get_search_history() == [
+        {"query": "django", "type": "repositories"}
+    ]
+
+
 def test_cache_entry_gets_configured_ttl(api_client, fake_redis, github_calls, settings):
     settings.CACHE_TTL_SECONDS = 7200
     post_search(api_client)
 
-    assert fake_redis.ttl["gsa:search:repositories:django"] == 7200
+    assert fake_redis.ttl["gsa:search:repositories:django:page:1"] == 7200
 
 
 @pytest.mark.parametrize(

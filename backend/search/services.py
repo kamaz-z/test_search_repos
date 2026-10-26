@@ -45,7 +45,7 @@ def search_github(search_type, query, page):
     params = {"q": query, "per_page": RESULTS_PER_PAGE, "page": PAGE_NUMBER}
 
     try:
-        response = requests.get(
+         response = requests.get(
             url,
             headers=headers,
             params=params,

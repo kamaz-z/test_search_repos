@@ -1,9 +1,7 @@
 import json
 import logging
-
 import redis
 from django.conf import settings
-
 logger = logging.getLogger(__name__)
 
 # Клієнт створюємо один раз і перевикористовуємо
@@ -23,7 +21,7 @@ def normalize_query(query):
 
 def build_cache_key(search_type, query, page):
     return (f"{settings.CACHE_KEY_PREFIX}:search:{search_type}:{normalize_query(query)}"
-            f"{normalize_query(query)}:page:{page}")
+            f":page:{page}")
 
 
 def get_cached_search(search_type, query, page):
@@ -62,3 +60,54 @@ def clear_app_cache():
     if keys:
         client.delete(*keys)
     return len(keys)
+#_________________HISTORY
+
+def save_search_query(search_type: str, query: str) -> None:
+    redis_client = get_redis_client()
+    key = "search:history"
+    history_item = json.dumps(
+        {"query": query, "type": search_type},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+    for existing_item in redis_client.lrange(key, 0, -1):
+        if _deserialize_history_item(existing_item) == {
+            "query": query,
+            "type": search_type,
+        }:
+            redis_client.lrem(key, 0, existing_item)
+
+    redis_client.lpush(key, history_item)
+    redis_client.ltrim(key, 0, 9)
+
+
+def _deserialize_history_item(raw_item) -> dict[str, str] | None:
+    if isinstance(raw_item, bytes):
+        raw_item = raw_item.decode("utf-8")
+    try:
+        item = json.loads(raw_item)
+    except json.JSONDecodeError:
+        item = None
+
+    if isinstance(item, dict):
+        query = item.get("query")
+        search_type = item.get("type")
+        if isinstance(query, str) and search_type in {"repositories", "users"}:
+            return {"query": query, "type": search_type}
+        logger.warning("Пропускаємо некоректний запис історії пошуку")
+        return None
+
+    if isinstance(raw_item, str) and raw_item:
+        return {"query": raw_item, "type": "repositories"}
+    return None
+
+
+def get_search_history() -> list[dict[str, str]]:
+    redis_client = get_redis_client()
+    history = []
+    for raw_item in redis_client.lrange("search:history", 0, 9):
+        item = _deserialize_history_item(raw_item)
+        if item is not None:
+            history.append(item)
+    return history

@@ -62,9 +62,10 @@ def clear_app_cache():
     return len(keys)
 #_________________HISTORY
 
-def save_search_query(search_type: str, query: str) -> None:
+def save_search_query(search_type: str,query: str,user_id: int,) -> None:
     redis_client = get_redis_client()
-    key = "search:history"
+    key = f"search:history:user:{user_id}"
+
     history_item = json.dumps(
         {"query": query, "type": search_type},
         ensure_ascii=False,
@@ -80,7 +81,6 @@ def save_search_query(search_type: str, query: str) -> None:
 
     redis_client.lpush(key, history_item)
     redis_client.ltrim(key, 0, 9)
-
 
 def _deserialize_history_item(raw_item) -> dict[str, str] | None:
     if isinstance(raw_item, bytes):
@@ -103,11 +103,15 @@ def _deserialize_history_item(raw_item) -> dict[str, str] | None:
     return None
 
 
-def get_search_history() -> list[dict[str, str]]:
+def get_search_history(user_id: int) -> list[dict[str, str]]:
     redis_client = get_redis_client()
+    key = f"search:history:user:{user_id}"
+
     history = []
-    for raw_item in redis_client.lrange("search:history", 0, 9):
+
+    for raw_item in redis_client.lrange(key, 0, 9):
         item = _deserialize_history_item(raw_item)
         if item is not None:
             history.append(item)
+
     return history

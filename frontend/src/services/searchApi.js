@@ -1,12 +1,18 @@
+
 const API_URL = "/api/search/";
 
-// Робить запит до бекенду і повертає готові дані або кидає помилку з текстом для користувача
 export async function searchGithub({ type, query, page = 1, signal }) {
   let response;
+
+  const token = sessionStorage.getItem("authToken");
+
   try {
     response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Token ${token}` } : {}),
+      },
       body: JSON.stringify({ type, query, page }),
       signal,
     });
@@ -16,6 +22,14 @@ export async function searchGithub({ type, query, page = 1, signal }) {
   }
 
   const data = await response.json().catch(() => ({}));
+
+  if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
+      sessionStorage.removeItem("authToken");
+      window.dispatchEvent(new Event("auth-required"));
+      throw new Error("Сесія завершилася. Увійдіть знову.");
+    }
+  }
 
   if (!response.ok) {
     throw new Error(data.detail || `Помилка запиту (${response.status})`);

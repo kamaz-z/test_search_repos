@@ -7,15 +7,48 @@ import { useSearch } from "./src/hooks/useSearch.js";
 import AdminControls from "./src/components/AdminControls.jsx";
 import SearchHistory from "./src/components/SearchHistory";
 import { useSearchHistory } from "./src/hooks/useSearchHistory";
+import Login from "./src/components/Login.jsx";
 
 
+function readAuthSession() {
+  const token = sessionStorage.getItem("authToken");
+  if (!token) return null;
+
+  try {
+    const session = JSON.parse(sessionStorage.getItem("authSession"));
+    if (!session || typeof session.is_staff !== "boolean") {
+      throw new Error("Stored session does not include user role");
+    }
+    return { ...session, token };
+  } catch {
+    sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("authSession");
+    return null;
+  }
+}
 
 export default function App() {
+  const [authSession, setAuthSession] = useState(readAuthSession);
+  const authToken = authSession?.token;
   const [query, setQuery] = useState("");
   const [type, setType] = useState("repositories");
   const debouncedQuery = useDebounce(query, 400);
   const { status, items, totalCount, error,hasMore,isLoadingMore,loadMore } = useSearch(debouncedQuery, type);
-  const { history, reload: reloadHistory } = useSearchHistory();
+  const { history, reload: reloadHistory } = useSearchHistory(Boolean(authToken));
+
+  useEffect(() => {
+  function handleAuthRequired() {
+    sessionStorage.removeItem("authSession");
+    setAuthSession(null);
+    setQuery("");
+  }
+
+  window.addEventListener("auth-required", handleAuthRequired);
+
+  return () => {
+    window.removeEventListener("auth-required", handleAuthRequired);
+  };
+}, []);
 
 // Після успішного пошуку бекенд міг додати запит в історію
 useEffect(() => {
@@ -25,6 +58,15 @@ useEffect(() => {
 function handleSelectHistory(item) {
   setQuery(item.query);
   setType(item.type);
+}
+if (!authToken) {
+  return <Login onLogin={setAuthSession} />;
+}
+
+function handleLogout() {
+  sessionStorage.removeItem("authToken");
+  sessionStorage.removeItem("authSession");
+  setAuthSession(null);
 }
 
   return (
@@ -66,7 +108,12 @@ function handleSelectHistory(item) {
     )}
   </>
 )}      </section>
-<AdminControls />
+<AdminControls
+  token={authToken}
+  username={authSession.username}
+  isStaff={authSession.is_staff}
+  onLogout={handleLogout}
+/>
 
     </main>
   );

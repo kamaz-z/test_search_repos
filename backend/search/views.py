@@ -2,7 +2,7 @@ import hmac
 import logging
 from django.conf import settings
 from rest_framework import status
-from rest_framework.permissions import AllowAny,IsAdminUser
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .cache import clear_app_cache, get_cached_search, set_cached_search,save_search_query,get_search_history
@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class SearchView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = SearchRequestSerializer(data=request.data)
@@ -35,7 +35,7 @@ class SearchView(APIView):
         cached_result = get_cached_search(search_type, query, page)
         if cached_result is not None:
             if page == 1:
-                save_search_query(search_type, query)
+                save_search_query(search_type, query, request.user.id)
             return Response({**cached_result, "cached": True})
 
         try:
@@ -50,7 +50,7 @@ class SearchView(APIView):
 
         result = normalize_search_response(search_type, raw_response, page, RESULTS_PER_PAGE)
         if page == 1:
-            save_search_query(search_type, query)
+            save_search_query(search_type, query, request.user.id)
         set_cached_search(search_type, query, result, page)
 
         return Response({**result, "cached": False})
@@ -63,8 +63,10 @@ class ClearCacheView(APIView):
         return Response({"deleted_keys": deleted_count})
 
 class HistoryView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        history = get_search_history()
+        history = get_search_history(request.user.id)
 
         return Response({"history": history})

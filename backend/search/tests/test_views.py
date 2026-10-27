@@ -1,6 +1,7 @@
 from fnmatch import fnmatch
 
 import pytest
+from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 from search.services import GitHubRateLimitError, GitHubTimeoutError
@@ -65,8 +66,28 @@ RAW_GITHUB_RESPONSE = {
 
 
 @pytest.fixture
-def api_client():
+def api_client(db):
+    user = get_user_model().objects.create_user(
+        username="user", password="password"
+    )
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return client
+
+
+@pytest.fixture
+def unauthenticated_api_client():
     return APIClient()
+
+
+@pytest.fixture
+def staff_api_client(db):
+    user = get_user_model().objects.create_user(
+        username="admin", password="password", is_staff=True
+    )
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return client
 
 
 @pytest.fixture
@@ -95,6 +116,23 @@ def post_search(api_client, search_type="repositories", query="django"):
     return api_client.post(
         "/api/search/", {"type": search_type, "query": query}, format="json"
     )
+
+
+def test_login_returns_token_and_role_for_regular_user(db):
+    user = get_user_model().objects.create_user(
+        username="regular", password="password"
+    )
+
+    response = APIClient().post(
+        "/api/auth/login",
+        {"username": user.username, "password": "password"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["token"]
+    assert response.data["username"] == user.username
+    assert response.data["is_staff"] is False
 
 
 # --- Пошук і кеш ---
@@ -198,40 +236,27 @@ def test_too_short_query_returns_400(api_client, fake_redis, github_calls):
 
 # --- Очищення кешу ---
 
-def test_clear_cache_without_token_is_forbidden(api_client, fake_redis, settings):
-    settings.CLEAR_CACHE_TOKEN = "secret"
+def test_clear_cache_without_token_is_unauthorized(
+    unauthenticated_api_client, fake_redis
+):
+    response = unauthenticated_api_client.post("/api/clear-cache/")
 
+    assert response.status_code == 401
+
+
+def test_non_staff_user_cannot_clear_cache(api_client, fake_redis):
     response = api_client.post("/api/clear-cache/")
 
     assert response.status_code == 403
 
 
-def test_clear_cache_with_wrong_token_is_forbidden(api_client, fake_redis, settings):
-    settings.CLEAR_CACHE_TOKEN = "secret"
-
-    response = api_client.post("/api/clear-cache/", HTTP_X_ADMIN_TOKEN="wrong")
-
-    assert response.status_code == 403
-
-
-def test_clear_cache_is_disabled_when_server_token_is_empty(
-    api_client, fake_redis, settings
-):
-    settings.CLEAR_CACHE_TOKEN = ""
-
-    response = api_client.post("/api/clear-cache/", HTTP_X_ADMIN_TOKEN="")
-
-    assert response.status_code == 403
-
-
-def test_clear_cache_removes_only_app_keys(api_client, fake_redis, settings):
-    settings.CLEAR_CACHE_TOKEN = "secret"
+def test_staff_user_can_clear_only_app_keys(staff_api_client, fake_redis):
     fake_redis.storage = {
         "gsa:search:repositories:django": "{}",
         "other_service:key": "keep me",
     }
 
-    response = api_client.post("/api/clear-cache/", HTTP_X_ADMIN_TOKEN="secret")
+    response = staff_api_client.post("/api/clear-cache/")
 
     assert response.status_code == 200
     assert response.data["deleted_keys"] == 1

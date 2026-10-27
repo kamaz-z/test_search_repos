@@ -3,7 +3,7 @@ const API_URL = "/api/history/";
 export async function getSearchHistory() {
   const response = await fetch(API_URL, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Authorization": `Token ${sessionStorage.getItem("authToken")}` }
   });
 
   const data = await response.json().catch(() => ({}));

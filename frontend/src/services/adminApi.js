@@ -1,17 +1,3 @@
-export async function loginAdmin({ username, password }) {
-  const response = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.detail || "Не вдалося увійти");
-  }
-  return data; // { token, username, is_staff }
-}
-
 export async function clearCache(token) {
   const response = await fetch("/api/clear-cache/", {
     method: "POST",

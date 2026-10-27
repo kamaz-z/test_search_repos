@@ -20,12 +20,6 @@ class LoginView(APIView):
                 {"detail": "Невірний логін або пароль"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if not user.is_staff:
-            return Response(
-                {"detail": "ви не маєте прав адміністратора для доступу до цієї функції"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         token, _ = Token.objects.get_or_create(user=user)
         return Response({
             "token": token.key,
